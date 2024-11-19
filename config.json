@@ -33,20 +33,19 @@
         "all_first_trail_profit_threshold": 1.0,
         "all_second_trail_profit_threshold": 3.0
     },
-    "bitget": {
-        "apiKey": "",
-        "secret": "",
-        "password": "",
+    "bybit": {
+        "apiKey": "TAKvdU6YsygjWJa6AR",
+        "secret": "6Hy8U0GlYfRc65AKskijxJWLahwq5y7I5TBw",
         "leverage": 1.0,
-        "stop_loss_pct": 2,
+        "stop_loss_pct": 1.0,
         "low_trail_stop_loss_pct": 0.2,
         "trail_stop_loss_pct": 0.2,
         "higher_trail_stop_loss_pct": 0.25,
-        "low_trail_profit_threshold": 0.3,
-        "first_trail_profit_threshold": 1.0,
-        "second_trail_profit_threshold": 3.0,
-        "blacklist": ["ETH-USDT-SWAP"]
+        "low_trail_profit_threshold": 0.382,
+        "first_trail_profit_threshold": 0.618,
+        "second_trail_profit_threshold": 0.784,
+        "blacklist": ["ETH/USDT:USDT","BTC/USDT:USDT"]
     },
-    "feishu_webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/655821a2",
-    "monitor_interval": 4
+    "feishu_webhook": "",
+    "monitor_interval": 1
 }
