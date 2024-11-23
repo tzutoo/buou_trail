@@ -47,5 +47,5 @@
         "blacklist": ["ETH/USDT:USDT","BTC/USDT:USDT"]
     },
     "feishu_webhook": "",
-    "monitor_interval": 1
+    "monitor_interval": 0.2
 }

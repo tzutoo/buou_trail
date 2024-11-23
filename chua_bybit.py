@@ -135,6 +135,17 @@ class MultiAssetTradingBot:
             self.logger.error(f"Error closing position for {symbol}: {e}")
             return False
 
+    def close_outdated_orders(self):
+        # print(f"開始檢查未完成訂單: {symbol}")
+        # orders = self.trader.fetch_open_orders(symbol.replace('.P', '')) symbol can be None
+        #
+        # for order in orders:
+        #     _symbol = order['symbol']
+        return
+
+    def close_outdated_positions(self):
+        return
+
     def monitor_positions(self):
         try:
             positions = self.fetch_positions()
@@ -149,12 +160,14 @@ class MultiAssetTradingBot:
 
             for position in positions:
                 try:
+                    # print(position)
                     symbol = position['symbol']
                     position_amt = float(position.get('contracts', 0))
                     unrealized_pnl = float(position.get('unrealizedPnl', 0))
                     position_value = float(position.get('notional', 0))
                     entryPrice = float(position.get('entryPrice', 0))
-                    takeProfitPrice = float(position.get('takeProfitPrice', 0))
+                    # takeProfitPrice = float(position.get('takeProfitPrice', 0))
+                    stopLossPrice = float(position.get('stopLossPrice', 0))
                     side = position.get('side', '')
 
                     if position_amt == 0:
@@ -166,21 +179,15 @@ class MultiAssetTradingBot:
                             self.detected_positions[symbol] = position_amt
                         continue
 
-                    # Calculate position's actual stop loss percentage and adjustment ratio using takeProfitPrice, because they are 1:1 to stopLostPrice which is not set
-                    position_stop_loss_pct = abs(takeProfitPrice - entryPrice) / entryPrice * 100
+                    # Calculate position's actual stop loss percentage and adjustment ratio using takeProfitPrice(t2 in HPP), because they are 1:1 to stopLostPrice which is not set
+                    # position_stop_loss_pct = abs(takeProfitPrice - entryPrice) / entryPrice * 100
+                    position_stop_loss_pct = abs(stopLossPrice - entryPrice) / entryPrice * 100
+                    print("position_stop_loss_pct:", position_stop_loss_pct)
                     adjustment_ratio = self.stop_loss_pct / position_stop_loss_pct if position_stop_loss_pct != 0 else 1
-
-                    # Calculate adjusted thresholds for this position
-                    adjusted_thresholds = {
-                        'low_trail_profit': self.low_trail_profit_threshold * adjustment_ratio,
-                        'first_trail_profit': self.first_trail_profit_threshold * adjustment_ratio,
-                        'second_trail_profit': self.second_trail_profit_threshold * adjustment_ratio,
-                        'low_trail_stop': self.low_trail_stop_loss_pct * adjustment_ratio,
-                        'trail_stop': self.trail_stop_loss_pct * adjustment_ratio,
-                        'higher_trail_stop': self.higher_trail_stop_loss_pct * adjustment_ratio
-                    }
+                    print("adjustment_ratio:", adjustment_ratio)
 
                     profit_pct = (unrealized_pnl / position_value) * 100 if position_value != 0 else 0
+                    profit_pct *= adjustment_ratio
 
                     if symbol not in self.detected_positions:
                         self.detected_positions[symbol] = position_amt
@@ -203,11 +210,11 @@ class MultiAssetTradingBot:
                         self.highest_profits[symbol] = highest_profit
 
                     current_tier = "无"
-                    if highest_profit >= adjusted_thresholds['second_trail_profit']:
+                    if highest_profit >= self.second_trail_profit_threshold:
                         current_tier = "第二档移动止盈"
-                    elif highest_profit >= adjusted_thresholds['first_trail_profit']:
+                    elif highest_profit >= self.first_trail_profit_threshold:
                         current_tier = "第一档移动止盈"
-                    elif highest_profit >= adjusted_thresholds['low_trail_profit']:
+                    elif highest_profit >= self.low_trail_profit_threshold:
                         current_tier = "低档保护止盈"
 
                     self.current_tiers[symbol] = current_tier
@@ -217,14 +224,14 @@ class MultiAssetTradingBot:
                         f"浮动盈亏: {profit_pct:.2f}%，最高盈亏: {highest_profit:.2f}%，当前档位: {current_tier}")
 
                     if current_tier == "低档保护止盈":
-                        self.logger.info(f"回撤到{adjusted_thresholds['low_trail_stop']:.2f}% 止盈")
-                        if profit_pct <= adjusted_thresholds['low_trail_stop']:
+                        self.logger.info(f"回撤到{self.low_trail_stop_loss_pct:.2f}% 止盈")
+                        if profit_pct <= self.low_trail_stop_loss_pct:
                             self.logger.info(f"{symbol} 触发低档保护止盈，当前盈亏回撤到: {profit_pct:.2f}%，执行平仓")
                             self.close_position(symbol, abs(position_amt), 'sell' if side == 'long' else 'buy')
                             continue
 
                     elif current_tier == "第一档移动止盈":
-                        trail_stop_loss = highest_profit * (1 - adjusted_thresholds['trail_stop'])
+                        trail_stop_loss = highest_profit * (1 - self.trail_stop_loss_pct)
                         self.logger.info(f"回撤到 {trail_stop_loss:.2f}% 止盈")
                         if profit_pct <= trail_stop_loss:
                             self.logger.info(
@@ -234,7 +241,7 @@ class MultiAssetTradingBot:
                             continue
 
                     elif current_tier == "第二档移动止盈":
-                        trail_stop_loss = highest_profit * (1 - adjusted_thresholds['higher_trail_stop'])
+                        trail_stop_loss = highest_profit * (1 - self.higher_trail_stop_loss_pct)
                         self.logger.info(f"回撤到 {trail_stop_loss:.2f}% 止盈")
                         if profit_pct <= trail_stop_loss:
                             self.logger.info(
