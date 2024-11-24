@@ -1,0 +1,9 @@
+services:
+  trading_bot:
+    build: .
+    image: buou_trail
+    container_name: buou_trail
+    volumes:
+      - ./config.json:/app/config.json
+      - ./log:/app/log
+    restart: unless-stopped
