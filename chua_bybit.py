@@ -179,9 +179,7 @@ class MultiAssetTradingBot:
                             self.detected_positions[symbol] = position_amt
                         continue
 
-                    # Calculate position's actual stop loss percentage and adjustment ratio using takeProfitPrice(t2 in HPP), because they are 1:1 to stopLostPrice which is not set
-                    # position_stop_loss_pct = abs(takeProfitPrice - entryPrice) / entryPrice * 100
-                    position_stop_loss_pct = abs(stopLossPrice - entryPrice) / entryPrice * 100
+                    position_stop_loss_pct = abs(stopLossPrice - entryPrice) / entryPrice * 100 if stopLossPrice != 0 else self.stop_loss_pct
                     print("position_stop_loss_pct:", position_stop_loss_pct)
                     adjustment_ratio = self.stop_loss_pct / position_stop_loss_pct if position_stop_loss_pct != 0 else 1
                     print("adjustment_ratio:", adjustment_ratio)
